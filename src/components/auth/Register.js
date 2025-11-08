@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser, resetAuthState } from '../../store/slices/authSlice';
 import './Auth.css';
 
 const Register = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  const { isLoading, isSuccess, isError, errorMessage } = useSelector((state) => state.auth);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -215,7 +220,16 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  // Handle successful registration
+  useEffect(() => {
+    if (isSuccess) {
+      // Show success message and redirect to login
+      navigate('/login');
+      dispatch(resetAuthState());
+    }
+  }, [isSuccess, navigate, dispatch]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validate all fields
@@ -275,9 +289,8 @@ const Register = () => {
       }
     };
     
-    console.log('Registration submitted:', registrationData);
-  
-    navigate('/login');
+    // Dispatch register action
+    dispatch(registerUser(registrationData));
   };
 
   const passwordStrength = getPasswordStrength(formData.password);
@@ -306,6 +319,21 @@ const Register = () => {
   return (
     <div className="register-container">
       <h2>Register</h2>
+      
+      {/* Show error message from API */}
+      {isError && errorMessage && (
+        <div style={{
+          padding: '12px',
+          marginBottom: '20px',
+          backgroundColor: '#ffebee',
+          color: '#c62828',
+          borderRadius: '4px',
+          fontSize: '14px'
+        }}>
+          {errorMessage}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="fullName">Full Name:</label>
@@ -317,6 +345,7 @@ const Register = () => {
             onChange={handleChange}
             onBlur={() => handleBlur('fullName')}
             className={touched.fullName && errors.fullName ? 'error' : ''}
+            disabled={isLoading}
             required
           />
           {touched.fullName && errors.fullName && (
@@ -525,7 +554,9 @@ const Register = () => {
           )}
         </div>
 
-        <button type="submit" disabled={!isFormValid}>Register</button>
+        <button type="submit" disabled={!isFormValid || isLoading}>
+          {isLoading ? 'Registering...' : 'Register'}
+        </button>
       </form>
       <p style={{ textAlign: 'center', marginTop: '20px' }}>
         Already have an account? <Link to="/login" style={{ color: '#4CAF50', fontWeight: 'bold' }}>Login here</Link>
